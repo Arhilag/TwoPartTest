@@ -17,8 +17,15 @@ public class PathFinder : MonoBehaviour, IPathFinder
     public IEnumerable<Vector2> GetPath(Vector2 A, Vector2 C, IEnumerable<Edge> edges)
     {
         edgesList = edges.ToList();
-        List<Vector2> points = new List<Vector2>();
-
+        points = new List<Vector2>();
+        edgesList.Add(new Edge()
+        {
+            Start = C,
+            End = C,
+            First = edgesList[edgesList.Count - 1].Second,
+            Second = edgesList[edgesList.Count - 1].Second
+        });
+        
         int lastEdge = 1;
         points.Add(A);
         while (lastEdge < edgesList.Count)
@@ -30,32 +37,12 @@ public class PathFinder : MonoBehaviour, IPathFinder
             {
                 if(edgesList[lastEdge - 1].Start.x == edgesList[lastEdge - 1].First.Max.x || edgesList[lastEdge - 1].Start.x == edgesList[lastEdge - 1].First.Min.x)
                 {
-                    var difference = TurnVertical(edgesList, lastEdge, points[points.Count - 1]);
-                    if (difference.x != 0 || difference.y != 0)
-                    {
-                        var newPoint = points[points.Count - 1] + difference;
-                        if (newPoint.x < edgesList[lastEdge - 1].First.Max.x && newPoint.x > edgesList[lastEdge - 1].First.Min.x &&
-                            newPoint.y < edgesList[lastEdge - 1].First.Max.y && newPoint.x > edgesList[lastEdge - 1].First.Min.y)
-                        {
-                            points[points.Count - 1] = newPoint;
-                        }
-                        else
-                        {
-                            points.Add(edgesList[lastEdge - 1].Start);
-                            lastEdge++;
-                            continue;
-                        }
-                    }
-                    verticalDirection = true;
-                }
-                else
-                {
                     var difference = TurnHorizontal(edgesList, lastEdge, points[points.Count - 1]);
                     if (difference.x != 0 || difference.y != 0)
                     {
                         var newPoint = points[points.Count - 1] + difference;
                         if (newPoint.x < edgesList[lastEdge - 1].First.Max.x && newPoint.x > edgesList[lastEdge - 1].First.Min.x &&
-                            newPoint.y < edgesList[lastEdge - 1].First.Max.y && newPoint.x > edgesList[lastEdge - 1].First.Min.y)
+                            newPoint.y < edgesList[lastEdge - 1].First.Max.y && newPoint.y > edgesList[lastEdge - 1].First.Min.y)
                         {
                             points[points.Count - 1] = newPoint;
                         }
@@ -68,13 +55,33 @@ public class PathFinder : MonoBehaviour, IPathFinder
                     }
                     horizontalDirection = true;
                 }
+                else
+                {
+                    var difference = TurnVertical(edgesList, lastEdge, points[points.Count - 1]);
+                    if (difference.x != 0 || difference.y != 0)
+                    {
+                        var newPoint = points[points.Count - 1] + difference;
+                        if (newPoint.x < edgesList[lastEdge - 1].First.Max.x && newPoint.x > edgesList[lastEdge - 1].First.Min.x &&
+                            newPoint.y < edgesList[lastEdge - 1].First.Max.y && newPoint.y > edgesList[lastEdge - 1].First.Min.y)
+                        {
+                            points[points.Count - 1] = newPoint;
+                        }
+                        else
+                        {
+                            points.Add(edgesList[lastEdge - 1].Start);
+                            lastEdge++;
+                            continue;
+                        }
+                    }
+                    verticalDirection = true;
+                }
             }
 
-            var pointData = GetPoint(A, C, edgesList, 1, verticalDirection, horizontalDirection);
+            var pointData = GetPoint(points[points.Count - 1], C, edgesList, lastEdge, verticalDirection, horizontalDirection);
             points.Add(pointData.Point);
             lastEdge = pointData.Edge;
         }
-        if(points[points.Count - 1] != C)
+        if (points[points.Count - 1] != C)
         {
             points.Add(C);
         }
@@ -96,21 +103,53 @@ public class PathFinder : MonoBehaviour, IPathFinder
 
             if (horizontalDirection)
             {
-                checkStart = CheckPreviousHorizontalEdges(edgesList, A, firstPoint, i);
-                checkEnd = CheckPreviousHorizontalEdges(edgesList, A, secondPoint, i);
+                checkStart = CheckPreviousHorizontalEdges(edgesList, A, firstPoint, i, startEdges);
+                checkEnd = CheckPreviousHorizontalEdges(edgesList, A, secondPoint, i, startEdges);
             }
 
             if (verticalDirection)
             {
-                checkStart = CheckPreviousVerticalEdges(edgesList, A, firstPoint, i);
-                checkEnd = CheckPreviousVerticalEdges(edgesList, A, secondPoint, i);
+                checkStart = CheckPreviousVerticalEdges(edgesList, A, firstPoint, i, startEdges);
+                checkEnd = CheckPreviousVerticalEdges(edgesList, A, secondPoint, i, startEdges);
             }
 
             if (!checkStart && !checkEnd)
             {
-                data.Point = edgesList[i - 1].Start;
-                data.Edge = i + 1;
-                return data;
+                if(data.Point == Vector2.zero)
+                {
+                    if (horizontalDirection)
+                    {
+                        checkStart = CheckPreviousHorizontalEdges(edgesList, edgesList[i - 2].End, firstPoint, i, startEdges);
+                        checkEnd = CheckPreviousHorizontalEdges(edgesList, edgesList[i - 2].End, secondPoint, i, startEdges);
+                    }
+
+                    if (verticalDirection)
+                    {
+                        checkStart = CheckPreviousVerticalEdges(edgesList, edgesList[i - 2].End, firstPoint, i, startEdges);
+                        checkEnd = CheckPreviousVerticalEdges(edgesList, edgesList[i - 2].End, secondPoint, i, startEdges);
+                    }
+
+                    if (!checkStart && !checkEnd)
+                    {
+                        if (data.Point == Vector2.zero)
+                        {
+                            data.Point = edgesList[i - 1].Start;
+                            data.Edge = i + 1;
+                        }
+                        return data;
+                    }
+                    else if (checkStart)
+                    {
+                        data.Point = edgesList[i].Start;
+                        data.Edge = i + 2;
+                    }
+                    else if (checkEnd)
+                    {
+                        data.Point = edgesList[i].End;
+                        data.Edge = i + 2;
+                    }
+                    points[points.Count - 1] = edgesList[i - 2].End;
+                }
             }
             else if (checkStart)
             {
@@ -124,8 +163,8 @@ public class PathFinder : MonoBehaviour, IPathFinder
             }
         }
 
-        if ((horizontalDirection && CheckPreviousHorizontalEdges(edgesList, A, C, edgesList.Count - 1)) ||
-           (verticalDirection && CheckPreviousVerticalEdges(edgesList, A, C, edgesList.Count - 1)))
+        if ((horizontalDirection && CheckPreviousHorizontalEdges(edgesList, A, C, edgesList.Count - 1, startEdges)) ||
+           (verticalDirection && CheckPreviousVerticalEdges(edgesList, A, C, edgesList.Count - 1, startEdges)))
         {
             data.Point = C;
             data.Edge = edgesList.Count;
@@ -234,9 +273,9 @@ public class PathFinder : MonoBehaviour, IPathFinder
            (A.x == edgesList[lastEdge - 1].First.Max.x && edgesList[lastEdge - 1].Start.x == edgesList[lastEdge - 1].First.Min.x));
     }
 
-    private bool CheckPreviousHorizontalEdges(List<Edge> edgesList, Vector2 A, Vector2 point, int i)
+    private bool CheckPreviousHorizontalEdges(List<Edge> edgesList, Vector2 A, Vector2 point, int i, int start)
     {
-        for (int j = i - 1; j >= 0; j--)
+        for (int j = i - 1; j >= start; j--)
         {
             var fHight = edgesList[j].Start.y - A.y;
             var sHight = point.y - A.y;
@@ -252,15 +291,15 @@ public class PathFinder : MonoBehaviour, IPathFinder
         return true;
     }
 
-    private bool CheckPreviousVerticalEdges(List<Edge> edgesList, Vector2 A, Vector2 point, int i)
+    private bool CheckPreviousVerticalEdges(List<Edge> edgesList, Vector2 A, Vector2 point, int i, int start)
     {
-        for (int j = i - 1; j >= 0; j--)
+        for (int j = i - 1; j >= start - 1; j--)
         {
-            var fHight = edgesList[j].Start.x - A.x;
+            var fHight = point.x - edgesList[j].Start.x;
             var sHight = point.x - A.x;
             var sWidth = point.y - A.y;
 
-            var fWidth = ((fHight / sHight) * sWidth) + A.y;
+            var fWidth = point.y - ((fHight / sHight) * sWidth);
 
             if (!(fWidth >= edgesList[j].Start.y && fWidth <= edgesList[j].End.y))
             {
@@ -268,53 +307,6 @@ public class PathFinder : MonoBehaviour, IPathFinder
             }
         }
         return true;
-    }
-
-    private void Awake()
-    {
-        edgesList = new List<Edge>()
-        {
-            new Edge(
-                new Rectangle(new Vector2(-15, 15), new Vector2(2, 25)),
-                new Rectangle(new Vector2(-3, 25), new Vector2(17, 35)),
-                new Vector2(-3, 25),
-                new Vector2(2, 25)),
-            new Edge(
-                new Rectangle(new Vector2(-3, 25), new Vector2(17, 35)),
-                new Rectangle(new Vector2(17, 20), new Vector2(37, 30)),
-                new Vector2(17, 25),
-                new Vector2(17, 30))
-
-        };
-
-        points = GetPath(new Vector2(-6.5f, 15), new Vector2(37, 25), edgesList).ToList();
-
-        //edges = new List<Edge>()
-        //{
-        //    new Edge(
-        //        new Rectangle(new Vector2(-10, 10), new Vector2(0, 20)),
-        //        new Rectangle(new Vector2(-5, 20), new Vector2(5, 30)),
-        //        new Vector2(-5, 20),
-        //        new Vector2(0, 20)),
-        //    new Edge(
-        //        new Rectangle(new Vector2(-5, 20), new Vector2(5, 30)),
-        //        new Rectangle(new Vector2(-5, 30), new Vector2(5, 35)),
-        //        new Vector2(-5, 30),
-        //        new Vector2(5, 30)),
-        //    new Edge(
-        //        new Rectangle(new Vector2(-5, 30), new Vector2(5, 35)),
-        //        new Rectangle(new Vector2(0, 35), new Vector2(5, 40)),
-        //        new Vector2(0, 35),
-        //        new Vector2(5, 35)),
-        //    new Edge(
-        //        new Rectangle(new Vector2(0, 35), new Vector2(5, 40)),
-        //        new Rectangle(new Vector2(5, 35), new Vector2(10, 40)),
-        //        new Vector2(5, 35),
-        //        new Vector2(5, 40))
-
-        //};
-
-        //points = GetPath(new Vector2(-5f, 10), new Vector2(10, 37), edges).ToList();
     }
 
     private void Update()
