@@ -117,7 +117,9 @@ public class PathFinder : MonoBehaviour, IPathFinder
             {
                 if(data.Point == Vector2.zero)
                 {
-                    if (!isCheckEndPoint)
+                    if (!isCheckEndPoint && 
+                        (CheckPreviousHorizontalEdges(edgesList, points[points.Count - 2], edgesList[i - 2].End, i - 2, historyEdges[historyEdges.Count - 2]) || 
+                        CheckPreviousVerticalEdges(edgesList, points[points.Count - 2], edgesList[i - 2].End, i - 2, historyEdges[historyEdges.Count - 2])))
                     {
                         return GetPoint(edgesList[i - 2].End, C, edgesList, startEdges, verticalDirection, horizontalDirection, true);
                     }
@@ -156,8 +158,6 @@ public class PathFinder : MonoBehaviour, IPathFinder
 
     private Vector2 TurnVertical(List<Edge> edgesList, int startEdges, Vector2 lastPoint)
     {
-        Vector2 difference = Vector2.zero;
-
         var firstPoint = edgesList[startEdges].Start;
         var secondPoint = edgesList[startEdges].End;
 
@@ -195,13 +195,11 @@ public class PathFinder : MonoBehaviour, IPathFinder
             return new Vector2(lastPoint.x, lastPoint.y + distPositive);
         }
 
-        return difference;
+        return Vector2.zero;
     }
 
     private Vector2 TurnHorizontal(List<Edge> edgesList, int startEdges, Vector2 lastPoint)
     {
-        Vector2 difference = Vector2.zero;
-
         var firstPoint = edgesList[startEdges].Start;
         var secondPoint = edgesList[startEdges].End;
 
@@ -239,7 +237,7 @@ public class PathFinder : MonoBehaviour, IPathFinder
             return new Vector2(lastPoint.y, lastPoint.x + distPositive);
         }
 
-        return difference;
+        return Vector2.zero;
     }
 
     private bool CheckHorizontalPointsDirection(Vector2 A, List<Edge> edgesList, int lastEdge)
