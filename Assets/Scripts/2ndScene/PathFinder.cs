@@ -89,7 +89,7 @@ public class PathFinder : MonoBehaviour, IPathFinder
         return points;
     }
 
-    private PointData GetPoint(Vector2 A, Vector2 C, List<Edge> edgesList, int startEdges, bool verticalDirection, bool horizontalDirection)
+    private PointData GetPoint(Vector2 A, Vector2 C, List<Edge> edgesList, int startEdges, bool verticalDirection, bool horizontalDirection, bool isCheckEndPoint = false)
     {
         PointData data = new PointData();
 
@@ -117,39 +117,15 @@ public class PathFinder : MonoBehaviour, IPathFinder
             {
                 if(data.Point == Vector2.zero)
                 {
-                    if (horizontalDirection)
+                    if (!isCheckEndPoint)
                     {
-                        checkStart = CheckPreviousHorizontalEdges(edgesList, edgesList[i - 2].End, firstPoint, i, startEdges);
-                        checkEnd = CheckPreviousHorizontalEdges(edgesList, edgesList[i - 2].End, secondPoint, i, startEdges);
+                        return GetPoint(edgesList[i - 2].End, C, edgesList, startEdges, verticalDirection, horizontalDirection, true);
                     }
 
-                    if (verticalDirection)
-                    {
-                        checkStart = CheckPreviousVerticalEdges(edgesList, edgesList[i - 2].End, firstPoint, i, startEdges);
-                        checkEnd = CheckPreviousVerticalEdges(edgesList, edgesList[i - 2].End, secondPoint, i, startEdges);
-                    }
-
-                    if (!checkStart && !checkEnd)
-                    {
-                        if (data.Point == Vector2.zero)
-                        {
-                            data.Point = edgesList[i - 1].Start;
-                            data.Edge = i + 1;
-                        }
-                        return data;
-                    }
-                    else if (checkStart)
-                    {
-                        data.Point = edgesList[i].Start;
-                        data.Edge = i + 2;
-                    }
-                    else if (checkEnd)
-                    {
-                        data.Point = edgesList[i].End;
-                        data.Edge = i + 2;
-                    }
-                    points[points.Count - 1] = edgesList[i - 2].End;
+                    data.Point = edgesList[i - 1].Start;
+                    data.Edge = i + 1;
                 }
+                return data;
             }
             else if (checkStart)
             {
@@ -160,6 +136,11 @@ public class PathFinder : MonoBehaviour, IPathFinder
             {
                 data.Point = edgesList[i].End;
                 data.Edge = i + 2;
+            }
+
+            if (isCheckEndPoint)
+            {
+                points[points.Count - 1] = edgesList[i - 2].End;
             }
         }
 
